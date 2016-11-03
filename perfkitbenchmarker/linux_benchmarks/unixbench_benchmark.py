@@ -180,7 +180,7 @@ def Run(benchmark_spec):
   vms = benchmark_spec.vms
   vm = vms[0]
   logging.info('UnixBench running on %s', vm)
-  unixbench_command = 'cd {0} && UB_TMPDIR={1} ./Run'.format(
+  unixbench_command = 'cd {0} && UB_TMPDIR={1} ./Run -i 1'.format(
       unixbench.UNIXBENCH_DIR, vm.GetScratchDir())
   logging.info('Unixbench Results:')
   stdout, _ = vm.RemoteCommand(unixbench_command, should_log=True)

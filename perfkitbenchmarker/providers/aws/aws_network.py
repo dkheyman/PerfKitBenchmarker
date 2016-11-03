@@ -547,10 +547,10 @@ class AwsNetwork(network.BaseNetwork):
 
   def Delete(self):
     """Deletes the network."""
-    if self.subnet:
-      self.subnet.Delete()
     self.placement_group.Delete()
     self.regional_network.Delete()
+    if self.subnet:
+      self.subnet.Delete()
 
   @classmethod
   def _GetKeyFromNetworkSpec(cls, spec):

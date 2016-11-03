@@ -40,6 +40,10 @@ flags.DEFINE_integer('iperf_timeout', None,
                      'addition to iperf runtime before '
                      'killing iperf client command.',
                      lower_bound=1)
+flags.DEFINE_integer('iperf_omit_seconds', 0,
+                     'Number of seconds to omit before tabulating '
+                     'results',
+                    lower_bound=0)
 
 FLAGS = flags.FLAGS
 
@@ -97,10 +101,11 @@ def _RunIperf(sending_vm, receiving_vm, receiving_ip_address, ip_type):
   Returns:
     A Sample.
   """
-  iperf_cmd = ('iperf --client %s --port %s --format m --time %s -P %s' %
+  iperf_cmd = ('iperf --client %s --port %s --format m --time %s -P %s -o %s' %
                (receiving_ip_address, IPERF_PORT,
                 FLAGS.iperf_runtime_in_seconds,
-                FLAGS.iperf_sending_thread_count))
+                FLAGS.iperf_sending_thread_count,
+                FLAGS.iperf_omit_seconds))
   # the additional time on top of the iperf runtime is to account for the
   # time it takes for the iperf process to start and exit
   timeout_buffer = FLAGS.iperf_timeout or 30 + FLAGS.iperf_sending_thread_count
