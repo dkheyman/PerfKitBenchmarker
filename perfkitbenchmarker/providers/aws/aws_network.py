@@ -21,7 +21,7 @@ the same project. See https://aws.amazon.com/documentation/vpc/
 for more information about AWS Virtual Private Clouds.
 """
 
-import json
+import json, pdb
 import logging
 import threading
 import uuid
@@ -51,20 +51,16 @@ class AwsFirewall(network.BaseFirewall):
     self.firewall_set = set()
     self._lock = threading.Lock()
 
-  def AllowPort(self, vm, start_port, end_port=None):
+  def AllowPort(self, vm, port):
     """Opens a port on the firewall.
 
     Args:
       vm: The BaseVirtualMachine object to open the port for.
-      start_port: The first local port to open in a range.
-      end_port: The last local port to open in a range. If None, only start_port
-        will be opened.
+      port: The local port to open.
     """
     if vm.is_static:
       return
-    if end_port is None:
-      end_port = start_port
-    entry = (start_port, end_port, vm.group_id)
+    entry = (port, vm.group_id)
     if entry in self.firewall_set:
       return
     with self._lock:
@@ -75,7 +71,7 @@ class AwsFirewall(network.BaseFirewall):
           'authorize-security-group-ingress',
           '--region=%s' % vm.region,
           '--group-id=%s' % vm.group_id,
-          '--port=%s-%s' % (start_port, end_port),
+          '--port=%s' % port,
           '--cidr=0.0.0.0/0']
       util.IssueRetryableCommand(
           authorize_cmd + ['--protocol=tcp'])
@@ -282,16 +278,27 @@ class AwsInternetGateway(resource.BaseResource):
 
   def _Exists(self):
     """Returns true if the internet gateway exists."""
-    describe_cmd = util.AWS_PREFIX + [
-        'ec2',
-        'describe-internet-gateways',
-        '--region=%s' % self.region,
-        '--filter=Name=internet-gateway-id,Values=%s' % self.id]
-    stdout, _ = util.IssueRetryableCommand(describe_cmd)
-    response = json.loads(stdout)
-    internet_gateways = response['InternetGateways']
-    assert len(internet_gateways) < 2, 'Too many internet gateways.'
-    return len(internet_gateways) > 0
+    if (self.id is not None):
+        describe_cmd = util.AWS_PREFIX + [
+            'ec2',
+            'describe-internet-gateways',
+            '--region=%s' % self.region,
+            '--filter=Name=internet-gateway-id,Values=%s' % self.id]
+        stdout, _ = util.IssueRetryableCommand(describe_cmd)
+        response = json.loads(stdout)
+        internet_gateways = response['InternetGateways']
+        assert len(internet_gateways) < 2, 'Too many internet gateways.'
+        return len(internet_gateways) > 0
+    else:
+        describe_cmd = util.AWS_PREFIX + [
+            'ec2',
+            'describe-internet-gateways',
+            '--region=%s' % self.region,
+            ]
+        stdout, _ = util.IssueRetryableCommand(describe_cmd)
+        response = json.loads(stdout)
+        internet_gateways = response['InternetGateways']
+        return internet_gateways
 
   def Attach(self, vpc_id):
     """Attaches the internetgateway to the VPC."""
@@ -419,7 +426,6 @@ class AwsPlacementGroup(resource.BaseResource):
 
 class _AwsRegionalNetwork(network.BaseNetwork):
   """Object representing regional components of an AWS network.
-
   The benchmark spec contains one instance of this class per region, which an
   AwsNetwork may retrieve or create via _AwsRegionalNetwork.GetForRegion.
 
@@ -485,7 +491,6 @@ class _AwsRegionalNetwork(network.BaseNetwork):
         return
 
       self.vpc.Create()
-
       self.internet_gateway.Create()
       self.internet_gateway.Attach(self.vpc.id)
 
@@ -551,6 +556,7 @@ class AwsNetwork(network.BaseNetwork):
     self.regional_network.Delete()
     if self.subnet:
       self.subnet.Delete()
+
 
   @classmethod
   def _GetKeyFromNetworkSpec(cls, spec):
