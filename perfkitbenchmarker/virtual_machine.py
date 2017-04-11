@@ -18,7 +18,7 @@ All VM specifics are self-contained and the class provides methods to
 operate on the VM: boot, shutdown, etc.
 """
 
-import abc
+import abc, sys
 import os.path
 import threading
 
@@ -281,7 +281,7 @@ class BaseVirtualMachine(resource.BaseResource):
   def AllowPort(self, start_port, end_port=None):
     """Opens the port on the firewall corresponding to the VM if one exists."""
     if self.firewall:
-      self.firewall.AllowPort(self, start_port, end_port)
+      self.firewall.AllowPort(self, start_port)
 
   def AllowRemoteAccessPorts(self):
     """Allow all ports in self.remote_access_ports."""
